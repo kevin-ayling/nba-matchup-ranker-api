@@ -9,5 +9,5 @@ def main(date_to_check):
 
 
 if __name__ == "__main__":
-    user_date = datetime(2020, 8, 1)
+    user_date = datetime(2020, 1, 1)
     main(user_date)

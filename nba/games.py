@@ -2,7 +2,7 @@ from nba.utils import find_matchup, find_season
 from nba.teams import find_team_league_leader_info, find_team_playoff_ranking, find_team_name
 from nba.tv import find_tv_info, find_tv_year
 from datetime import date, timedelta, datetime
-from nba.static import find_static_games, find_scoreboard
+from nba.static import find_static_games, find_scoreboard, find_common_team_info
 
 
 # input: offset - number of days after today
@@ -23,6 +23,7 @@ def find_future_matchups(date):
     matchups = []
     season = find_season(date)
     for team in find_team_list(date):
+        find_common_team_info(find_season(date))
         matchup = find_matchup(str(team['gameId']), matchups)
         if matchup is None:
             matchup = create_matchup(team['gameId'], date)
@@ -74,7 +75,7 @@ def create_matchup(game_id, date):
                'teams': [],
                'score': {},
                'leagueleaders': [],
-               'date': date,
+               'date': date.strftime('%m/%d/%Y'),
                'time': None,
                'venue': '',
                'tv': {},

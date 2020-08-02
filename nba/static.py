@@ -1,4 +1,4 @@
-from nba_api.stats.endpoints import leaguestandings, homepageleaders, commonteamroster, leaguegamefinder, scoreboardv2, leaguegamelog
+from nba_api.stats.endpoints import leaguestandings, homepageleaders, commonteamroster, leaguegamefinder, scoreboardv2, leaguegamelog, teamgamelog, teamgamelogs, teaminfocommon
 from nba.utils import call_nba_api
 import json
 import requests
@@ -26,7 +26,7 @@ def find_league_leaders(season):
         league_leaders[category] = leaders['HomePageLeaders']
         static_leaders[season] = league_leaders
     with open('nba/data/HomePageLeaders.json', 'w') as outfile:
-        json.dump(static_leaders, outfile)
+        json.dump(static_leaders, outfile, default=str)
     return league_leaders
 
 
@@ -40,7 +40,7 @@ def find_standings(season):
     static_standings[season] = call_nba_api(leaguestandings.LeagueStandings, ['00', season, 'Regular Season'],
                                             {}).get_normalized_dict()
     with open('nba/data/LeagueStandings.json', 'w') as outfile:
-        json.dump(static_standings, outfile)
+        json.dump(static_standings, outfile, default=str)
     return static_standings[season]['Standings']
 
 
@@ -56,7 +56,7 @@ def find_teams(season):
                                      {}).get_normalized_dict()
             league_teams[team['TeamID']] = team_resp['CommonTeamRoster']
         with open('nba/data/LeagueTeams{}.json'.format(season), 'w') as outfile:
-            json.dump(league_teams, outfile)
+            json.dump(league_teams, outfile, default=str)
         return league_teams
 
 
@@ -71,7 +71,7 @@ def find_scoreboard(date):
                                    {}).get_normalized_dict()
 
     with open('nba/data/LeagueScoreBoard.json', 'w') as outfile:
-        json.dump(scoreboard_resp, outfile)
+        json.dump(scoreboard_resp, outfile, default=str)
     return scoreboard_resp[date.strftime('%m/%d/%Y')]
 
 
@@ -90,8 +90,31 @@ def find_static_games(date):
         return []
     static_games[date.strftime('%m/%d/%Y')] = gamefinder_resp.get_normalized_dict()['LeagueGameFinderResults']
     with open('nba/data/LeagueGames.json', 'w') as outfile:
-        json.dump(static_games, outfile)
+        json.dump(static_games, outfile, default=str)
     return static_games[date.strftime('%m/%d/%Y')]
+
+#
+# def find_team_matchup_history(season, team_id):
+#     teamgames = call_nba_api(teamgamelog.TeamGameLog, [], {'season': season, 'season_type_all_star': 'Regular Season', 'team_id': team_id, 'league_id_nullable': '00'}).get_normalized_dict()
+#     allteamgames = call_nba_api(teamgamelogs.TeamGameLogs, [], {}).get_normalized_dict()
+#     print("hi")
+
+
+def find_common_team_info(season):
+    static_team_info = {}
+    if path.isfile('nba/data/LeagueTeamInfo.json'):
+        with open('nba/data/LeagueTeamInfo.json') as json_file:
+            static_team_info = json.load(json_file)
+            if season in static_team_info:
+                return static_team_info[season]
+    standings = find_standings(season)
+    teaminfo = {}
+    for team in standings:
+        teaminfo[team['TeamID']] = call_nba_api(teaminfocommon.TeamInfoCommon, [], {'league_id': '00','team_id' :team['TeamID'], 'season_type_nullable': 'Regular Season', 'season_nullable':season}).get_normalized_dict()
+    static_team_info[season] = teaminfo
+    with open('nba/data/LeagueTeamInfo.json', 'w') as outfile:
+        json.dump(static_team_info, outfile, default=str)
+    return teaminfo
 
 
 def find_tv_data(year):
@@ -104,5 +127,5 @@ def find_tv_data(year):
     static_tv_info[year] = requests.get(
         'http://data.nba.com/data/10s/v2015/json/mobile_teams/nba/{}/league/00_full_schedule.json'.format(year)).json()
     with open('nba/data/LeagueTVInfo.json', 'w') as outfile:
-        json.dump(static_tv_info, outfile)
+        json.dump(static_tv_info, outfile, default=str)
     return static_tv_info[year]

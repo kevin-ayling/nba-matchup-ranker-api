@@ -25,7 +25,7 @@ def find_tv_info(matchups, date):
     if date <= datetime.today() - timedelta(days=1): return
     schedule = find_tv_data(find_tv_year(date))
     for matchup in matchups:
-        month = matchup['date'].month
+        month = int(matchup['date'].split('/')[0])
         if 'lscd' not in schedule:
             print('debug: TV info not available')
             break
