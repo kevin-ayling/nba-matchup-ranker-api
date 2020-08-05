@@ -4,14 +4,17 @@ from nba.utils import get_games_str
 import schedule
 import time
 import logging
+import time
 
 
 def job():
     today = datetime.today()
     logging.info('running find_matchups for {}'.format(today.strftime('%Y-%m-%d')))
+    start = time.time()
     games_str = get_games_str(find_matchups(today), today)
     logging.info(games_str)
-    logging.info('SUCCESSFUL RUN FOR {}'.format(today.strftime('%Y-%m-%d')))
+    end = time.time()
+    logging.info('SUCCESSFUL RUN FOR {} - Executed in {}'.format(today.strftime('%Y-%m-%d'), end - start))
 
 
 def main():
