@@ -10,6 +10,7 @@ requests = "*"
 flask = "*"
 boto3 = "*"
 schedule = "*"
+twilio = "*"
 
 [requires]
 python_version = "3.8"

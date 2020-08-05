@@ -1,7 +1,7 @@
 from nba_api.stats.endpoints import leaguestandings, homepageleaders, commonteamroster, leaguegamefinder, scoreboardv2, \
-    teaminfocommon, leagueleaders, leaguegamelog
-from nba.utils import call_nba_api
-from nba.aws import read_obj, key_exists_in_s3, write_obj
+    teaminfocommon, leagueleaders, leaguegamelog, boxscoresummaryv2
+from nba.utils import call_nba_api, write_file, read_file
+from nba.aws import invoke_lambda
 import json
 import requests
 from os import path
@@ -9,13 +9,23 @@ from os import path
 league_leader_categories = ['Points', 'Rebounds', 'Assists', 'Defense', 'Clutch', 'Playmaking', 'Efficiency',
                             'Fast Break', 'Scoring Breakdown']
 
+
+# def find_box_score(matchup):
+#     # box_score = call_nba_api(boxscoresummaryv2.BoxScoreSummaryV2, [], {'game_id': matchup['id']}).get_normalized_dict()
+#     #  'https://stats.nba.com/stats/boxscoresummaryv2?GameID=0021901265'
+#     box_score = boxscoresummaryv2.BoxScoreSummaryV2(game_id='0021901262')
+#     resp = box_score.get_normalized_dict()
+#     print('got box score')
+#     print(resp)
+
+
 def find_links(date):
-    s3_links = read_from_s3('Links.json')
-    if date in s3_links:
-        return s3_links[date.strftime('%m/%d/%Y')]
-    s3_links[date.strftime('%m/%d/%Y')] = invoke_lambda('nbfabite-links')['links']
-    write_obj(s3_links, 'Links.json')
-    return s3_links[date.strftime('%m/%d/%Y')]
+    local_links = read_file('nba/data/Links.json')
+    if date.strftime('%m/%d/%Y') in local_links:
+        return local_links[date.strftime('%m/%d/%Y')]
+    new_links = {date.strftime('%m/%d/%Y'): invoke_lambda('nbfabite-links')['links']}
+    write_file('nba/data/Links.json', new_links)
+    return new_links[date.strftime('%m/%d/%Y')]
 
 
 def find_all_stars(season):
@@ -38,7 +48,7 @@ def find_all_stars(season):
 
 
 def find_league_leaders(season):
-    static_leaders = read_from_s3('HomePageLeaders.json')
+    static_leaders = read_file('nba/data/HomePageLeaders.json')
     if season in static_leaders:
         return static_leaders[season]
     else:
@@ -52,12 +62,12 @@ def find_league_leaders(season):
             league_leaders[category] = leaders['HomePageLeaders']
             static_leaders[season] = league_leaders
 
-        write_obj(static_leaders, 'HomePageLeaders.json'.format(season))
+        write_file('nba/data/HomePageLeaders.json', static_leaders)
         return static_leaders[season]
 
 
 def find_rookie_league_leaders(season):
-    static_rookies = read_from_s3('HomePageRookieLeaders.json')
+    static_rookies = read_file('nba/data/HomePageRookieLeaders.json')
     if season in static_rookies:
         return static_rookies[season]
     else:
@@ -71,7 +81,7 @@ def find_rookie_league_leaders(season):
             league_leaders[category] = leaders['HomePageLeaders']
             static_rookies[season] = league_leaders
 
-        write_obj(static_rookies, 'HomePageRookieLeaders.json'.format(season))
+        write_file('nba/data/HomePageRookieLeaders.json'.format(season), static_rookies)
         return static_rookies[season]
 
 
@@ -82,17 +92,17 @@ def find_standings(season):
 
 
 def find_teams(season):
-    stored_teams = read_from_s3('LeagueTeams{}.json'.format(season))
+    stored_teams = read_file('nba/data/LeagueTeams{}.json'.format(season))
     if len(stored_teams) > 0:
         return stored_teams
     else:
         league_teams = {}
         standings = find_standings(season)
-        for team in standings:
+        for team in standings['Standings']:
             team_resp = call_nba_api(commonteamroster.CommonTeamRoster, [team['TeamID'], season],
                                      {}).get_normalized_dict()
             league_teams[team['TeamID']] = team_resp['CommonTeamRoster']
-        write_obj(league_teams, 'LeagueTeams{}.json'.format(season))
+        write_file('nba/data/LeagueTeams{}.json'.format(season), league_teams)
         return league_teams
 
 
@@ -117,7 +127,7 @@ def find_static_games(date):
 
 
 def find_common_team_info(season):
-    static_team_info = read_from_s3('LeagueTeamInfo.json')
+    static_team_info = read_file('nba/data/LeagueTeamInfo.json')
     if season in static_team_info:
         return static_team_info[season]
     else:
@@ -130,32 +140,43 @@ def find_common_team_info(season):
                                                       'season_nullable': season}).get_normalized_dict()
         static_team_info[season] = team_info
 
-        write_obj(static_team_info, 'LeagueTeamInfo.json'.format(season))
+        write_file('nba/data/LeagueTeamInfo.json', static_team_info)
         return static_team_info[season]
 
 
 def find_tv_data(year):
-    static_tv_info = read_from_s3('LeagueTVInfo.json')
+    static_tv_info = read_file('nba/data/LeagueTVInfo.json')
     if str(year) in static_tv_info:
         return static_tv_info[str(year)]
     static_tv_info[year] = requests.get(
         'http://data.nba.com/data/10s/v2015/json/mobile_teams/nba/{}/league/00_full_schedule.json'.format(year)).json()
-    write_obj(static_tv_info, 'LeagueTVInfo.json')
+    write_file('nba/data/LeagueTVInfo.json', static_tv_info)
     return static_tv_info[year]
 
 
-def read_from_s3(key):
-    if key_exists_in_s3(key):
-        s3_data = read_obj(key)
-        return s3_data
-    return {}
+# def read_from_s3(key):
+#     if key_exists_in_s3(key):
+#         s3_data = read_obj(key)
+#         return s3_data
+#     return {}
 
 
-def find_and_write_data(season, key, api_call, positional_arguments, keyword_arguments):
-    s3_data = read_from_s3(key)
-    if season in s3_data:
-        return s3_data[season]
-    s3_data[season] = call_nba_api(api_call, positional_arguments,
+def find_and_write_data(season, key, api_call, positional_arguments, keyword_arguments, use_static=True):
+    local_data = read_file('nba/data/' + key)
+    if season in local_data:
+        if use_static:
+            return local_data[season]
+    local_data[season] = call_nba_api(api_call, positional_arguments,
                                    keyword_arguments).get_normalized_dict()
-    write_obj(s3_data, key)
-    return s3_data[season]
+    write_file('nba/data/' + key, local_data)
+    return local_data[season]
+
+
+# def find_and_write_data_s3(season, key, api_call, positional_arguments, keyword_arguments):
+#     s3_data = read_from_s3(key)
+#     if season in s3_data:
+#         return s3_data[season]
+#     s3_data[season] = call_nba_api(api_call, positional_arguments,
+#                                    keyword_arguments).get_normalized_dict()
+#     write_obj(s3_data, key)
+#     return s3_data[season]

@@ -2,6 +2,8 @@ from requests.exceptions import Timeout
 from time import sleep
 from datetime import datetime
 import logging
+import json
+from os import path
 
 
 def call_nba_api(api_call, positional_arguments, keyword_arguments):
@@ -27,6 +29,19 @@ def call_nba_api(api_call, positional_arguments, keyword_arguments):
                                                                keyword_arguments))
             print(ex)
             raise RuntimeError
+
+
+def read_file(filepath):
+    data = {}
+    if path.isfile(filepath):
+        with open(filepath) as json_file:
+            data = json.load(json_file)
+    return data
+
+
+def write_file(filepath, data):
+    with open(filepath, 'w') as outfile:
+        json.dump(data, outfile, default=str)
 
 
 def find_matchup(game_id, matchups):

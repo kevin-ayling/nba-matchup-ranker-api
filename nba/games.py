@@ -5,22 +5,6 @@ from datetime import date, timedelta, datetime
 from nba.static import find_static_games, find_scoreboard, find_common_team_info, find_all_stars
 
 
-# input: offset - number of days after today
-# output:
-# matchups =
-#   {[
-#       id: id,
-#       teams: [ id: id, teamName: name ]
-#   ]}
-def find_games_info(user_date):
-    # converted_date = datetime.strptime(user_date, '%m-%d-%y')
-    converted_date = user_date
-    if datetime.today() - timedelta(days=1) <= converted_date:
-        return find_future_matchups(converted_date)
-    else:
-        return find_previous_matchups(converted_date)
-
-
 def find_matchups(date):
     matchups = []
     season = find_season(date)
@@ -34,18 +18,18 @@ def find_matchups(date):
     return matchups
 
 
-def find_previous_matchups(date):
-    matchups = []
-    season = find_season(date)
-    game_finder_results = find_static_games(date)
-    for team in game_finder_results['LeagueGameFinderResults']:
-        matchup = find_matchup(str(team['GAME_ID']), matchups)
-        if matchup is None:
-            matchup = create_matchup(team['GAME_ID'], date)
-            matchups.append(matchup)
-        add_team_info(matchup, team, team['TEAM_ID'], team['TEAM_NAME'], season)
-    add_matchup_info(matchups, date, season)
-    return matchups
+# def find_previous_matchups(date):
+#     matchups = []
+#     season = find_season(date)
+#     game_finder_results = find_static_games(date)
+#     for team in game_finder_results['LeagueGameFinderResults']:
+#         matchup = find_matchup(str(team['GAME_ID']), matchups)
+#         if matchup is None:
+#             matchup = create_matchup(team['GAME_ID'], date)
+#             matchups.append(matchup)
+#         add_team_info(matchup, team, team['TEAM_ID'], team['TEAM_NAME'], season)
+#     add_matchup_info(matchups, date, season)
+#     return matchups
 
 
 def add_team_info(matchup, team, team_id, team_name, season):
