@@ -33,15 +33,15 @@ def key_exists_in_s3(key):
 
 # Create an SNS client
 def write_sns(message):
-    logging.info('sns disabled atm')
+    # logging.info('sns disabled atm')
     # Publish a simple message to the specified SNS topic
-    # response = sns.publish(
-    #     TopicArn='arn:aws:sns:us-east-1:557026794806:Daily-NBA-Matchups',
-    #     Message=message
-    # )
+    response = sns.publish(
+        TopicArn='arn:aws:sns:us-east-1:557026794806:Daily-Script-Notifications',
+        Message=message
+    )
 
     # Print out the response
-    # print('Response from SNS: {}'.format(response))
+    logging.info('Response from SNS: {}'.format(response))
 
 
 def read_obj(key):
