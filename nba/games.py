@@ -1,8 +1,8 @@
 from nba.utils import find_matchup, find_season
-from nba.teams import find_team_league_leader_info, find_team_playoff_ranking, find_team_name
+from nba.teams import find_team_league_leader_info, find_team_playoff_ranking, find_team_name, find_team_rookie_info, find_team_allstars
 from nba.tv import find_tv_info, find_tv_year
 from datetime import date, timedelta, datetime
-from nba.static import find_static_games, find_scoreboard, find_common_team_info
+from nba.static import find_static_games, find_scoreboard, find_common_team_info, find_all_stars
 
 
 # input: offset - number of days after today
@@ -12,18 +12,19 @@ from nba.static import find_static_games, find_scoreboard, find_common_team_info
 #       id: id,
 #       teams: [ id: id, teamName: name ]
 #   ]}
-def find_games_info(date):
-    if datetime.today() - timedelta(days=1) <= date:
-        return find_future_matchups(date)
+def find_games_info(user_date):
+    # converted_date = datetime.strptime(user_date, '%m-%d-%y')
+    converted_date = user_date
+    if datetime.today() - timedelta(days=1) <= converted_date:
+        return find_future_matchups(converted_date)
     else:
-        return find_previous_matchups(date)
+        return find_previous_matchups(converted_date)
 
 
-def find_future_matchups(date):
+def find_matchups(date):
     matchups = []
     season = find_season(date)
     for team in find_team_list(date):
-        find_common_team_info(find_season(date))
         matchup = find_matchup(str(team['gameId']), matchups)
         if matchup is None:
             matchup = create_matchup(team['gameId'], date)
@@ -37,7 +38,7 @@ def find_previous_matchups(date):
     matchups = []
     season = find_season(date)
     game_finder_results = find_static_games(date)
-    for team in game_finder_results:
+    for team in game_finder_results['LeagueGameFinderResults']:
         matchup = find_matchup(str(team['GAME_ID']), matchups)
         if matchup is None:
             matchup = create_matchup(team['GAME_ID'], date)
@@ -50,7 +51,9 @@ def find_previous_matchups(date):
 def add_team_info(matchup, team, team_id, team_name, season):
     find_outcome(team, matchup)
     matchup['teams'].append({'id': team_id, 'name': team_name})
+    matchup['allstars'].extend(find_team_allstars(team_id, season))
     matchup['leagueleaders'].extend(find_team_league_leader_info(team_id, season))
+    matchup['rookies'].extend(find_team_rookie_info(team_id, season))
 
 
 def add_matchup_info(matchups, date, season):
@@ -74,7 +77,9 @@ def create_matchup(game_id, date):
     matchup = {'id': game_id,
                'teams': [],
                'score': {},
+               'allstars': [],
                'leagueleaders': [],
+               'rookies': [],
                'date': date.strftime('%m/%d/%Y'),
                'time': None,
                'venue': '',
@@ -126,22 +131,77 @@ def find_matchup_scores(matchups, season):
 
 
 # input: matchup, season
-# output: rank - number (0-28)
+# output: rank - number (0-26)
 # rank = 30 - (team1_rank + team2_rank)
 def find_matchup_team_score(matchup, season):
     team_ranks = 0
     for team in matchup['teams']:
-        team_rank = find_team_playoff_ranking(team['id'], season)
+        team_rank = find_team_playoff_ranking(team['id'], season) * 2
+        if team_rank > 20:
+            team_rank = 20
         team_ranks += team_rank
-    return 30 - team_ranks
+    score = 30 - team_ranks
+    if score < 0:
+        return 0
+    return score
 
 
 # input: matchup, season
-# output: rank - number (1-25)
+# output: rank - number (0-25)
 def find_matchup_player_score(matchup):
-    score = 1
-    for leader in matchup['leagueleaders']:
-        score = (score * (7 - leader['rank'])) / 2
+    league_leader_score = find_league_leader_score(matchup['leagueleaders'], matchup['allstars'])
+    if matchup['teams'][0]['name']  == 'Pelicans' or matchup['teams'][1]['name']  == 'Pelicans':
+        matchup['rookies'].append({'id': 0,
+                      'name': 'Zion Williamson',
+                      'stat': 'Points',
+                      'rank': 1,
+                      'score': 5})
+    rookie_score = find_rookie_score(matchup['rookies']) / 2
+    score = league_leader_score + rookie_score
+    if score > 25: return 25
+    return score
+
+
+def find_rookie_score(leaders):
+    score = 0
+    players = {}
+    for leader in leaders:
+        if leader['id'] in players:
+            newscore = players[leader['id']] + leader['score']
+            if newscore > 8: newscore = 8
+            players[leader['id']] = newscore
+        if leader['name'] == 'Ja Morant' or leader['name'] == 'Zion Williamson':
+            players[leader['id']] = 8
+        else:
+            players[leader['id']] = leader['score']
+    for player in players:
+        score += players[player]
     if score > 25:
         return 25
     return score
+
+
+def find_league_leader_score(leaders, allstars):
+    score = 0
+    players = {}
+    for leader in leaders:
+        if leader['id'] in players:
+            newscore = players[leader['id']] + leader['score']
+            if newscore > 8: newscore = 8
+            players[leader['id']] = newscore
+        if leader['name'] == 'Ja Morant' or leader['name'] == 'Zion Williamson':
+            players[leader['id']] = 8
+        else:
+            players[leader['id']] = leader['score']
+    for allstar in allstars:
+        if allstar['id'] in players:
+            if players[allstar['id']] >= 5: players[allstar['id']] = 8
+            else: players[allstar['id']] += 3
+        else:
+            score += 3
+    for player in players:
+        score += players[player]
+    if score > 25:
+        return 25
+    return score
+

@@ -7,6 +7,9 @@ verify_ssl = true
 [packages]
 nba-api = "*"
 requests = "*"
+flask = "*"
+boto3 = "*"
+schedule = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"

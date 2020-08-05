@@ -1,5 +1,6 @@
 from nba.static import find_tv_data
 from datetime import datetime, timedelta
+import logging
 
 nba_month_map_2020 = {
     9: {'month': 'September', 'number': 0},
@@ -27,7 +28,7 @@ def find_tv_info(matchups, date):
     for matchup in matchups:
         month = int(matchup['date'].split('/')[0])
         if 'lscd' not in schedule:
-            print('debug: TV info not available')
+            logging.info('debug: TV info not available')
             break
         tvgames = schedule['lscd'][nba_month_map_2020[month]['number']]['mscd']['g']
         for game in tvgames:
