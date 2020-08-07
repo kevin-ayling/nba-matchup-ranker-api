@@ -2,7 +2,6 @@ from twilio.rest import Client
 import logging
 
 
-
 client = Client(account_sid, auth_token)
 
 

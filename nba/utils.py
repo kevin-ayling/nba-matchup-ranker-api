@@ -44,6 +44,12 @@ def write_file(filepath, data):
         json.dump(data, outfile, default=str)
 
 
+def write_html_file(filepath, index_str):
+    Html_file = open(filepath, "w")
+    Html_file.write(index_str)
+    Html_file.close()
+
+
 def find_matchup(game_id, matchups):
     for matchup in matchups:
         if matchup['id'] == game_id:

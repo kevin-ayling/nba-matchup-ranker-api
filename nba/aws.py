@@ -23,8 +23,11 @@ def write_obj(obj, key):
 
 
 def write_html(str, key):
+    s3_obj = boto3.client('s3', aws_access_key_id=os.environ['aws_access_key'],
+                          aws_secret_access_key=os.environ['aws_secret_access_key'])
     logging.info('write {} to s3'.format(key))
-    s3_obj.put_object(Key='index.html', Bucket='nbabite-links', Body=str, ContentType='text/html')
+    resp = s3_obj.put_object(Key='index.html', Bucket='nbabite-links', Body=str, ContentType='text/html')
+    logging.info(resp)
 
 
 def key_exists_in_s3(key):
@@ -50,14 +53,20 @@ def key_exists_in_s3(key):
 #     logging.info('Response from SNS: {}'.format(response))
 
 
-def read_obj(key):
-    logging.info('reading {} from s3'.format(key))
-    s3_clientobj = s3_obj.get_object(Bucket='nba-matchups-data', Key=key)
-    s3_clientdata = s3_clientobj['Body'].read().decode('utf-8')
-    return json.loads(s3_clientdata)
+# def read_obj(key):
+#     logging.info('reading {} from s3'.format(key))
+#     s3_clientobj = s3_obj.get_object(Bucket='', Key=key)
+#     s3_clientdata = s3_clientobj['Body'].read().decode('utf-8')
+#     return json.loads(s3_clientdata)
 
 
 def invoke_lambda(function_name):
-    print('invoking lambda {}'.format(function_name))
+    logging.info('invoking lambda {}'.format(function_name))
     response = lambda_client.invoke(FunctionName=function_name)
+    return json.loads(response['Payload'].read())
+
+
+def invoke_lambda_with_payload(function_name, payload):
+    logging.info('invoking lambda {}'.format(function_name))
+    response = lambda_client.invoke(FunctionName=function_name,Payload=json.dumps(payload))
     return json.loads(response['Payload'].read())

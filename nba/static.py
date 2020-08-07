@@ -10,13 +10,11 @@ league_leader_categories = ['Points', 'Rebounds', 'Assists', 'Defense', 'Clutch'
                             'Fast Break', 'Scoring Breakdown']
 
 
-# def find_box_score(matchup):
-#     # box_score = call_nba_api(boxscoresummaryv2.BoxScoreSummaryV2, [], {'game_id': matchup['id']}).get_normalized_dict()
-#     #  'https://stats.nba.com/stats/boxscoresummaryv2?GameID=0021901265'
-#     box_score = boxscoresummaryv2.BoxScoreSummaryV2(game_id='0021901262')
-#     resp = box_score.get_normalized_dict()
-#     print('got box score')
-#     print(resp)
+def find_static_matchups(user_date):
+    static_matchups = read_file('nba/data/Matchups.json')
+    if user_date.strftime('%m/%d/%Y') in static_matchups:
+        return static_matchups[user_date.strftime('%m/%d/%Y')]
+    return {}
 
 
 def find_links(date):
@@ -167,10 +165,9 @@ def find_and_write_data(season, key, api_call, positional_arguments, keyword_arg
         if use_static:
             return local_data[season]
     local_data[season] = call_nba_api(api_call, positional_arguments,
-                                   keyword_arguments).get_normalized_dict()
+                                      keyword_arguments).get_normalized_dict()
     write_file('nba/data/' + key, local_data)
     return local_data[season]
-
 
 # def find_and_write_data_s3(season, key, api_call, positional_arguments, keyword_arguments):
 #     s3_data = read_from_s3(key)

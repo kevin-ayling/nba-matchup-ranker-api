@@ -1,11 +1,11 @@
-from nba.utils import find_matchup, find_season
+from nba.utils import find_matchup, find_season, write_file
 from nba.teams import find_team_league_leader_info, find_team_playoff_ranking, find_team_name, find_team_rookie_info, find_team_allstars
 from nba.tv import find_tv_info, find_tv_year
 from datetime import date, timedelta, datetime
 from nba.static import find_static_games, find_scoreboard, find_common_team_info, find_all_stars
 
 
-def find_matchups(date):
+def find_matchups_and_save(date):
     matchups = []
     season = find_season(date)
     for team in find_team_list(date):
@@ -15,7 +15,13 @@ def find_matchups(date):
             matchups.append(matchup)
         add_team_info(matchup, team, team['id'], find_team_name(team['id'], season), season)
     add_matchup_info(matchups, date, season)
+    save_matchups(matchups, date)
     return matchups
+
+
+def save_matchups(matchups, date):
+    matchups_with_key = {date.strftime('%m/%d/%Y'): matchups}
+    write_file('nba/data/Matchups.json', matchups_with_key)
 
 
 # def find_previous_matchups(date):
@@ -68,6 +74,7 @@ def create_matchup(game_id, date):
                'time': None,
                'venue': '',
                'tv': {},
+               'boxscore': {},
                'outcome': {'winner': '',
                            'loser': '',
                            'w_score': 0,
