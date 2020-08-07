@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from nba.aws import write_html, invoke_lambda_with_payload
 from nba.static import find_links
 import logging
@@ -47,7 +47,7 @@ def find_and_save_direct_links(date):
 
 
 def find_saved_direct_links():
-    today = datetime.today()
+    today = datetime.today() - timedelta(hours=4)
     return read_file('nba/data/DirectLinks.json')[today.strftime('%m/%d/%Y')]
 
 
@@ -63,7 +63,7 @@ def map_links(matchups, links):
 
 
 def generate_html_and_write_file(link_map):
-    today = datetime.today()
+    today = datetime.today() - timedelta(hours=4)
     header = 'NBA Games for {}, {} {} {}'.format(today.strftime('%A'),
                                                  today.strftime("%B"), today.day,
                                                  today.year)
@@ -72,7 +72,7 @@ def generate_html_and_write_file(link_map):
 
 
 def build_dynamic_html_with_scores_and_write_file(link_map):
-    today = datetime.today()
+    today = datetime.today() - timedelta(hours=4)
     header = 'NBA Games for {}, {} {} {}'.format(today.strftime('%A'),
                                                  today.strftime("%B"), today.day,
                                                  today.year)
@@ -131,7 +131,7 @@ def build_links_with_scores(link_map, direct_links):
                                                               build_direct_links(direct_links[link]))
         all_links += link_tag
     all_links += '<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><small>Last updated at: {}</small>'.format(
-        datetime.today())
+        datetime.today() - timedelta(hours=4))
     return all_links
 
 

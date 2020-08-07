@@ -5,23 +5,17 @@ import logging
 
 
 def find_box_scores_and_return_matchups(user_date):
-    scores = 0
     matchups = find_static_matchups(user_date)
     for matchup in matchups:
         if len(matchup['boxscore']) > 0:
             if matchup['boxscore']['status'] == 'Final':
-                scores += 1
                 pass
         try:
-            # 0021901262
-            # box_score = boxscoresummaryv2.BoxScoreSummaryV2('0021901262').get_normalized_dict()
             box_score = boxscoresummaryv2.BoxScoreSummaryV2(game_id=matchup['id']).get_normalized_dict()
             matchup['boxscore'] = find_score_info(box_score)
-            scores += 1
         except Exception as e:
             logging.debug('no score available for game')
     save_matchups(matchups, user_date)
-    logging.info('found {} box scores for {} matchups'.format(scores, len(matchups)))
     return matchups
 
 
@@ -30,6 +24,8 @@ def all_final(matchups):
         if len(matchup['boxscore']) > 0:
             if matchup['boxscore']['status'] == 'Final':
                 pass
+            else:
+                return False
         else:
             return False
     return True
